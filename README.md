@@ -265,13 +265,19 @@ This is disclosed for transparency. AI-generated code may contain bugs, incorrec
 
 ---
 
-## 💡 Inspiration
+# 💡 Inspiration and Acknowledgements: OpenPuck
 
-SwitchNet was inspired in part by the [OpenPuck](https://github.com/safijari/openpuck) project, which served as an important technical reference during development.
+The idea behind SwitchNet started thanks to
+[OpenPuck](https://github.com/safijari/openpuck).
 
-Many thanks to OpenPuck and its contributors for making their work available to the community.
+OpenPuck was the original inspiration for the project and also served as
+an important technical reference during SwitchNet's development.
 
-OpenPuck is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**, as is SwitchNet.
+OpenPuck is distributed under the **GNU Affero General Public License
+v3.0 (AGPL-3.0)**. SwitchNet is also distributed under the AGPL-3.0.
+
+Many thanks to the OpenPuck project and its contributors for making
+their work available to the community.
 
 ---
 
@@ -292,6 +298,41 @@ When modifying controller-specific behavior, testing on real hardware is strongl
 
 ---
 
+# 🚀 Possible Future Expansion
+
+SwitchNet is currently focused on **Nintendo Switch and Nintendo Switch 2**.
+
+That remains the primary goal of the project.
+However, the architecture behind SwitchNet — separating controller
+transport from video/audio streaming — could potentially be adapted to
+other consoles/PCs.
+
+If the project receives significant community interest, feature requests,
+contributions and financial support, I would be interested in exploring
+whether SwitchNet could be expanded to platforms such as:
+### 🎮 PlayStation 5
+A future implementation could investigate providing a similar network
+controller bridge for capture-based PlayStation 5 remote gaming setups.
+
+### 🎮 Xbox
+The same concept could potentially be investigated for Xbox consoles,
+with controller input transported independently from the video/audio
+stream.
+
+> [!IMPORTANT]
+> **PlayStation 5 and Xbox are not currently supported.**
+>
+> These are possible future research directions, not promised features or
+> announced release plans.
+>
+> Their feasibility would depend on console protocols, hardware
+> requirements, technical research, development time and access to the
+> necessary testing hardware.
+
+If SwitchNet receives enough interest and support, donations may also
+help fund the additional consoles, controllers, adapters and development
+hardware required to investigate these platforms.
+
 ## ☕ Support
 
 If you find SwitchNet useful and would like to support the time, hardware testing and experimentation behind the project:
@@ -302,13 +343,22 @@ Donations are completely optional.
 
 ---
 
-## 📄 License
+# 📄 License
 
-SwitchNet is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+SwitchNet is licensed under the **GNU Affero General Public License v3.0
+(AGPL-3.0)**.
 
-See [`LICENSE`](LICENSE) for the complete license terms.
+You are free to use, study, modify and redistribute SwitchNet under the
+terms of the AGPL-3.0.
 
-Third-party projects, libraries and components remain subject to their respective licenses.
+If you modify and distribute the software, or operate a modified version
+in circumstances covered by the AGPL network-use provisions, you must
+make the corresponding source code available as required by the license.
+
+See the [`LICENSE`](LICENSE) file for the complete license terms.
+
+Third-party projects, libraries and components remain subject to their
+respective licenses.
 
 ---
 
