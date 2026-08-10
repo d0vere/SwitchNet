@@ -110,10 +110,10 @@ Nintendo Switch ◄──── controller ─────── Player
 
 SwitchNet has been developed and tested with:
 
+- **Steam Controller 2026**
 - **Nintendo Switch 2 Pro Controller**
 - **Nintendo Switch Pro Controller**
 - **Sony DualSense**
-- **Steam Controller**
 - **Google Stadia Controller**
 - **XInput-compatible controllers**
 - **Generic gamepads**
