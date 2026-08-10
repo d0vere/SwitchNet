@@ -1,0 +1,18 @@
+Switch 2 Pro Controller USB support (Linux)
+
+Required packages:
+  pyusb
+  libusb
+  evdev
+
+Arch/CachyOS:
+  sudo pacman -S python-pyusb libusb python-evdev
+
+Then install permissions once:
+  ./install-switch2-pro-udev.sh
+
+Unplug/reconnect the controller after installing the rule.
+
+SwitchNet automatically detects Nintendo 057e:2069 and, when a usable evdev
+node is missing, runs the full vendor USB HID initialization sequence on
+interface 1. No manual Initialize button is required.
