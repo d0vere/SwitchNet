@@ -23,13 +23,20 @@ The result is a setup where you can leave your Switch connected to its dock, cap
 ---
 
 > [!IMPORTANT]
-> ## SwitchNet does not stream video or audio
+> ## SwitchNet does not capture or stream video/audio
 >
-> SwitchNet handles the **controller side** of a remote-play setup.
+> SwitchNet handles the **controller side** of the remote-play setup.
 >
-> You still need a separate capture and streaming solution to transport video and audio from the Nintendo Switch to the computer near the player.
+> To stream the Nintendo Switch or Nintendo Switch 2 video output, you need a
+> **video capture card connected to the server PC**.
 >
-> SwitchNet handles the opposite direction: **controller input from the player back to the console**.
+> A typical setup uses the console's HDMI output connected to a capture card,
+> which allows the server PC to capture the game video and audio. That video
+> stream can then be delivered to the remote client using your preferred
+> streaming solution.
+>
+> SwitchNet handles the opposite direction: **controller input from the player
+> back to the console**.
 
 ---
 
@@ -66,20 +73,24 @@ SwitchNet consists of two main components:
 The complete setup looks approximately like this:
 
 ```text
-                      LOCAL NETWORK
-                 ┌────────────────────┐
-                 │                    │
-                 │                    ▼
-Controller ──► Windows/Linux PC ──► SwitchNet ESP32-S3
-                    │                       │
-                    │                       │ Native USB
-                    │                       ▼
-                    │               Nintendo Switch
-                    │               / Nintendo Switch 2
-                    │
-                    ▼
-             Game video/audio
-             shown to the player
+Nintendo Switch / Switch 2
+            │
+            │ HDMI
+            ▼
+      Video Capture Card
+            │
+            ▼
+        Server PC
+            │
+            │ Video / Audio Streaming
+            ▼
+        Local Network
+            │
+            ▼
+         Client PC
+            │
+            ▼
+          Player
 ```
 
 Video and audio travel **from the console toward the player** using your preferred capture/streaming solution.
