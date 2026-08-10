@@ -1,323 +1,721 @@
-# SwitchNet
+# 🎮 SwitchNet
 
-Network controller bridge for Nintendo Switch and Nintendo Switch 2 game streaming.
+### Network controller bridge for Nintendo Switch and Nintendo Switch 2 game streaming
 
-> Stream the console, network the controllers, play anywhere in your home.
+> **Stream the console, network the controllers, play anywhere in your home.**
 
-SwitchNet is a network controller bridge designed primarily for Nintendo Switch and Nintendo Switch 2 game streaming setups.
+SwitchNet is a network controller bridge designed primarily for **Nintendo Switch and Nintendo Switch 2 game streaming setups**.
 
 The project was created to solve a very practical problem: video from a Nintendo Switch can be captured and streamed to another device over the network, but the physical controller still needs to communicate directly with the console.
 
 That becomes a problem as soon as you move far enough away from the Switch.
 
-SwitchNet solves the other half of the streaming equation:
+**SwitchNet solves the other half of the streaming equation:**
 
-The video travels over the network, so why shouldn't the controller?
+> **The video travels over the network, so why shouldn't the controller?**
 
-With SwitchNet, controllers can be connected to a Windows or Linux computer near the player. Their inputs are sent over the local network to a SwitchNet device connected to the Nintendo Switch, allowing the console to be controlled even when the player is outside normal controller range.
+With SwitchNet, controllers can be connected to a **Windows or Linux computer near the player**. Their inputs are sent over the local network to an **ESP32-S3 running SwitchNet**, which is connected via USB to the Nintendo Switch.
 
-The result is a setup where you can leave your Switch connected in one place and play it from another room — or potentially anywhere your home network reaches.
+This allows the console to be controlled even when the player is outside the normal wireless range of the controller.
 
-Why SwitchNet Exists
+The result is a setup where you can leave your Switch connected to its dock, capture setup or TV and play it from another room — or potentially anywhere your home network reaches.
 
-Imagine this setup:
+---
 
-ROOM A                              ROOM B
+> [!IMPORTANT]
+> ## SwitchNet does not stream video or audio
+>
+> SwitchNet handles the **controller side** of a remote-play setup.
+>
+> You still need a separate capture and streaming solution to transport video and audio from the Nintendo Switch to the computer near the player.
+>
+> SwitchNet handles the opposite direction: **controller input from the player back to the console**.
 
-Nintendo Switch                    PC / Laptop / Mini PC
-      │                                      │
-      │ HDMI                                 │
-      ▼                                      │
-Capture / Streaming ─── Network ────────► Video
-                                             │
-                                             ▼
-                                           Player
-                                             │
-                                         Controller
-                                             │
-                                             ▼
-                                      SwitchNet Client
-                                             │
-                                             │ Network
-                                             ▼
-Nintendo Switch ◄──── SwitchNet Hardware / Server
+---
 
-Streaming the picture is relatively easy.
+## ✨ Features
 
-The controller is the difficult part.
+SwitchNet currently provides:
 
-Nintendo controllers communicate directly with the console, and their usable wireless range is limited. Walls, distance and interference can make playing from another part of the house unreliable or impossible.
+- 🌐 Low-latency controller input over the local network
+- 🎮 Multiple controller support
+- 🪟 Windows client
+- 🐧 Linux client
+- 🕹️ Configurable controller mappings
+- 💾 Multiple mapping profiles
+- 🎯 Per-controller analog stick deadzones
+- 🌀 Gyroscope and accelerometer support for compatible controllers
+- 📳 Rumble feedback for compatible controllers
+- 🖱️ Experimental keyboard and mouse controller emulation
+- 🔎 Automatic network discovery
+- 📡 Configurable UDP update rate
+- 🔄 Controller roster and player-slot management
+- ⚙️ Controller-specific native backends where required
+- 🛠️ Integrated diagnostics
+- 🌙 Switch wake functionality
 
-SwitchNet moves that controller connection onto the network.
+---
 
-The controller stays next to the player, while SwitchNet transports its state back to the Nintendo Switch.
+# 🔌 How It Works
 
-How It Works
+SwitchNet consists of two main components:
 
-SwitchNet consists of two sides.
+1. **SwitchNet Client**
+2. **SwitchNet ESP32-S3 firmware**
 
-SwitchNet Client
+The complete setup looks approximately like this:
 
-The client runs on the computer near the player.
+```text
+                      LOCAL NETWORK
+                 ┌────────────────────┐
+                 │                    │
+                 │                    ▼
+Controller ──► Windows/Linux PC ──► SwitchNet ESP32-S3
+                    │                       │
+                    │                       │ Native USB
+                    │                       ▼
+                    │               Nintendo Switch
+                    │               / Nintendo Switch 2
+                    │
+                    ▼
+             Game video/audio
+             shown to the player
+```
 
-It supports Windows and Linux and is responsible for detecting connected controllers, reading their state and transmitting that information over the network.
+Video and audio travel **from the console toward the player** using your preferred capture/streaming solution.
 
-Depending on the controller, SwitchNet can handle much more than buttons and analog sticks, including:
+Controller input travels in the **opposite direction through SwitchNet**:
 
-Gyroscope
-Accelerometer
-Rumble
-Touchpad input
-Additional controller-specific buttons
-Custom mappings
-Multiple mapping profiles
-Per-controller deadzones
-
-SwitchNet also includes experimental keyboard and mouse controller emulation, allowing a computer keyboard and mouse to be mapped to Nintendo Switch controls.
-
-SwitchNet Hardware / Console Side
-
-The other side of SwitchNet is connected to the Nintendo Switch.
-
-It receives controller states from the network and translates them into controller input that the console can understand.
-
-This effectively moves the physical controller connection from:
-
-Controller ───────────────► Nintendo Switch
-        Bluetooth / USB
-
-to:
-
+```text
+Player
+  │
+  ▼
 Controller
-    │
-    ▼
+  │
+  ▼
 SwitchNet Client
-    │
-    │ LAN / Wi-Fi
-    ▼
-SwitchNet
-    │
-    ▼
-Nintendo Switch
+  │
+  │ LAN / Wi-Fi
+  ▼
+ESP32-S3 running SwitchNet
+  │
+  │ Native USB
+  ▼
+Nintendo Switch / Switch 2
+```
 
-The controller can therefore remain with the player even when the Nintendo Switch is located somewhere else in the house.
+This means that the physical controller stays next to the player instead of needing to remain within wireless range of the console.
 
-More Than Basic Button Forwarding
+---
 
-A major goal of SwitchNet is to avoid reducing every controller to just a few buttons and analog sticks.
+# 💻 SwitchNet Client
 
-Modern controllers contain much more functionality, and some games depend heavily on it.
+The SwitchNet Client runs on the computer near the player.
 
-SwitchNet therefore contains controller-specific implementations where necessary.
+Windows and Linux are supported.
 
-Depending on the controller and platform, this includes support for functionality such as:
+The client is responsible for:
 
-Native button layouts
-Analog sticks and triggers
-Gyroscope
-Accelerometer
-Rumble / haptic feedback
-Touchpad input
-Capture
-Home
-Additional rear buttons
-Controller-specific HID reports
+- Detecting connected controllers
+- Reading buttons and analog sticks
+- Reading triggers
+- Reading motion sensors where supported
+- Processing controller-specific inputs
+- Applying mappings
+- Applying analog stick deadzones
+- Managing player slots
+- Transmitting controller states over the network
+- Receiving and reproducing supported rumble feedback
 
-For some devices, generic operating-system controller APIs are sufficient.
+Depending on the controller, SwitchNet may use standard operating-system APIs or dedicated low-level implementations.
 
-For others, SwitchNet communicates with the hardware at a lower level using HID, HIDRaw, USB, evdev or dedicated controller-specific protocols.
+These include technologies such as:
 
-Supported Controllers
+- HID
+- HIDRaw
+- USB
+- evdev
+- XInput
+- Controller-specific protocols
+
+This allows SwitchNet to preserve functionality that might otherwise be lost through a generic gamepad abstraction.
+
+---
+
+# 🔧 Hardware Requirements
+
+SwitchNet requires a dedicated **ESP32-S3 development board with native USB support** connected to the Nintendo Switch or Nintendo Switch 2.
+
+## Tested Hardware
+
+SwitchNet has been developed and tested using an:
+
+### **ESP32-S3 SuperMini**
+
+The board must provide:
+
+- ESP32-S3 microcontroller
+- Native **USB OTG / USB Device** support
+- Wi-Fi connectivity
+- Sufficient flash memory for the SwitchNet firmware and web interface
+- A USB connection wired to the ESP32-S3 native USB peripheral
+
+> [!WARNING]
+> A regular ESP32 board is **not sufficient**.
+>
+> SwitchNet relies on the ESP32-S3 native USB peripheral to emulate the controller interface presented to the Nintendo Switch.
+
+Other ESP32-S3 development boards may also work if they expose the native USB peripheral correctly, but unless explicitly documented they should currently be considered **untested**.
+
+Some ESP32-S3 boards contain a USB connector connected only to a USB-to-serial interface.
+
+That alone is **not sufficient for SwitchNet**.
+
+Make sure the board exposes the ESP32-S3 native USB functionality.
+
+## What You Need
+
+A complete setup requires:
+
+- 1× **ESP32-S3 SuperMini**
+- 1× suitable USB cable
+- 1× Nintendo Switch or Nintendo Switch 2
+- A Windows or Linux computer near the player
+- A supported controller
+- A local network accessible by both the ESP32-S3 and the client computer
+- A separate video capture/streaming solution
+
+---
+
+# 🚀 Getting Started
+
+A typical SwitchNet setup works as follows:
+
+### 1. Flash the ESP32-S3
+
+Flash the SwitchNet firmware onto a compatible **ESP32-S3 SuperMini**.
+
+### 2. Configure the network
+
+Configure the SwitchNet device so that it can connect to the same local network used by the computer running the client.
+
+### 3. Connect the ESP32-S3 to the console
+
+Connect the ESP32-S3 native USB interface to the Nintendo Switch or Nintendo Switch 2.
+
+### 4. Start the SwitchNet Client
+
+Run the appropriate client for your operating system:
+
+- Windows
+- Linux
+
+### 5. Find the SwitchNet device
+
+Use automatic discovery when available, or manually enter the IP address of the SwitchNet device.
+
+### 6. Connect your controllers
+
+Connect one or more supported controllers to the Windows/Linux computer.
+
+### 7. Configure the controller roster
+
+Assign and reorder controllers according to the desired player slots.
+
+### 8. Start the service
+
+Start the SwitchNet service from the client.
+
+### 9. Start your video stream
+
+Open your preferred Nintendo Switch video capture/streaming solution.
+
+You should now be able to see the console remotely while controller input travels back to the Switch through SwitchNet.
+
+---
+
+# 🎮 Supported Controllers
 
 SwitchNet has been developed and tested with multiple controller families, including:
 
-Nintendo Switch 2 Pro Controller
-Nintendo Switch Pro Controller
-Sony DualSense
-Steam Controller
-Google Stadia Controller
-XInput-compatible controllers
-Generic compatible gamepads
-Keyboard and mouse emulation
-
-Support varies depending on the controller and operating system.
+- **Nintendo Switch 2 Pro Controller**
+- **Nintendo Switch Pro Controller**
+- **Sony DualSense**
+- **Steam Controller**
+- **Google Stadia Controller**
+- **XInput-compatible controllers**
+- **Generic compatible gamepads**
+- **Keyboard and mouse emulation**
 
 Some controllers have dedicated implementations to expose features that would otherwise be unavailable through generic controller APIs.
 
-For example, the Nintendo Switch 2 Pro Controller uses dedicated implementations for functionality such as native input reports, motion sensors, additional buttons and rumble.
+For example, the Nintendo Switch 2 Pro Controller uses dedicated implementations for functionality such as:
 
-Controller Mapping
+- Native input reports
+- Motion sensors
+- Additional buttons
+- Rumble
+- Controller-specific HID communication
+
+## Compatibility Overview
+
+Controller capabilities depend on the operating system, connection method and available backend.
+
+| Controller | Windows | Linux | Motion | Rumble | Mapping Profiles |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Nintendo Switch 2 Pro Controller | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Nintendo Switch Pro Controller | ✅ | ✅ | Supported | Supported | ✅ |
+| Sony DualSense | ✅ | ✅ | ✅ | Supported | ✅ |
+| Steam Controller | ✅ | ✅ | Supported | Supported | ✅ |
+| Google Stadia Controller | ✅ | ✅ | Controller dependent | Supported where available | ✅ |
+| XInput-compatible controllers | ✅ | Platform dependent | Controller dependent | Platform dependent | ✅ |
+| Generic gamepads | Platform dependent | Platform dependent | Controller dependent | Controller dependent | ✅ |
+| Keyboard / Mouse | Experimental | Experimental | — | — | ✅ |
+
+> [!NOTE]
+> Compatibility can vary depending on controller firmware, connection type, operating system, drivers and other software accessing the controller.
+>
+> The table above is intended as a general overview rather than a guarantee for every hardware configuration.
+
+---
+
+# 🕹️ Controller Mapping
 
 SwitchNet provides configurable controller mappings rather than requiring every physical controller to follow the same layout.
 
-Multiple profiles can be created for supported controller families.
+Multiple mapping profiles can be created for supported controller families.
 
-Mappings can cover standard controls such as:
+Mappings can cover standard Nintendo controls such as:
 
+```text
 A / B / X / Y
+
 L / R
 ZL / ZR
+
 D-Pad
+
 L3 / R3
+
 + / -
+
 Home
 Capture
+```
 
-as well as controller-specific inputs where supported.
+Controller-specific inputs can also be mapped where supported.
 
-Deadzone configuration is also available independently for different controller families.
+This includes additional inputs exposed by controllers such as the **Nintendo Switch 2 Pro Controller**.
 
-This allows SwitchNet to accommodate the different physical layouts and behaviors of Nintendo, Sony, Valve, Google and XInput controllers while presenting the correct controls to the console.
+SwitchNet therefore allows controllers from Nintendo, Sony, Valve, Google and XInput-compatible devices to be adapted to the layout expected by the console.
 
-Gyroscope and Motion Controls
+---
+
+# 🎯 Per-Controller Deadzones
+
+Analog stick deadzones can be configured independently for different controller families.
+
+This is useful because different controllers can have significantly different stick behavior, calibration and wear characteristics.
+
+Rather than applying one global deadzone to every device, SwitchNet can maintain appropriate settings for each controller type.
+
+---
+
+# 🌀 Gyroscope and Motion Controls
 
 Motion controls are particularly important on Nintendo platforms.
 
-SwitchNet therefore forwards gyroscope and accelerometer information for supported controllers rather than limiting communication to conventional gamepad state.
+SwitchNet forwards **gyroscope and accelerometer data** for supported controllers instead of limiting communication to conventional buttons and analog sticks.
 
 Controller-specific processing and calibration are used where required to convert the physical controller's coordinate system into the motion representation expected by SwitchNet and the console.
 
-This makes motion-controlled games usable even though the controller itself is connected to the remote client rather than directly to the Nintendo Switch.
+This allows motion-controlled games to remain playable even though the controller is physically connected to the remote client rather than directly to the Nintendo Switch.
 
-Rumble
+---
 
-Controller feedback can travel in the opposite direction.
+# 📳 Rumble and Feedback
 
-Instead of communication being limited to:
+SwitchNet supports bidirectional communication for compatible controllers.
 
-Controller → Network → Switch
+Controller input travels toward the console:
 
-SwitchNet can also transport supported feedback back toward the player:
+```text
+Controller
+    │
+    ▼
+Client
+    │
+    ▼
+Network
+    │
+    ▼
+ESP32-S3
+    │
+    ▼
+Nintendo Switch
+```
 
-Switch → Network → Client → Controller
+Feedback can travel in the opposite direction:
 
-This allows rumble to remain functional on supported controllers despite the controller being physically located on the remote side of the network.
+```text
+Nintendo Switch
+    │
+    ▼
+ESP32-S3
+    │
+    ▼
+Network
+    │
+    ▼
+SwitchNet Client
+    │
+    ▼
+Physical Controller
+```
 
-Different controllers use different feedback mechanisms, so SwitchNet contains controller-specific implementations where necessary.
+This allows supported rumble feedback generated by the console to be reproduced on the physical controller near the player.
 
-Multiple Controllers
+Because different controllers implement feedback differently, SwitchNet uses controller-specific rumble implementations where necessary.
+
+---
+
+# 👥 Multiple Controllers
 
 SwitchNet is not limited to a single player.
 
-The client maintains an ordered controller roster so that connected devices can be assigned to player slots.
+The client maintains an ordered **controller roster** so that connected devices can be assigned to player slots.
 
-Controllers can be reordered from the graphical interface, allowing multiple players near the streaming client to send their controllers back to the same Nintendo Switch.
+Controllers can be reordered from the graphical interface.
 
-This makes the project useful not only for playing alone from another room, but also for local multiplayer away from the physical console.
+This allows multiple players located near the streaming client to send their controllers through the network to the same Nintendo Switch.
 
-Windows and Linux Clients
+SwitchNet can therefore be used both for single-player remote play and local multiplayer away from the physical console.
 
-SwitchNet provides clients for both Windows and Linux.
+---
+
+# ⌨️ Keyboard and Mouse
+
+SwitchNet also includes **experimental keyboard and mouse controller emulation**.
+
+Keyboard keys can be mapped to Nintendo Switch controller inputs, while mouse movement can be used as an analog input.
+
+Keyboard and mouse mappings support configurable profiles in the same general way as physical controllers.
+
+This feature should currently be considered **experimental**.
+
+---
+
+# 🪟 Windows and 🐧 Linux
+
+SwitchNet provides clients for both **Windows and Linux**.
 
 Although the user-facing functionality is intended to remain consistent, controller access differs significantly between the two operating systems.
 
-For that reason, SwitchNet uses platform-specific implementations when required rather than forcing every controller through a single abstraction layer.
+For that reason, SwitchNet uses platform-specific implementations where required rather than forcing every controller through a single abstraction layer.
 
-The GUI provides dedicated sections for:
+## Client Interface
 
-Controllers — connected controllers, player order and blacklist management.
+The graphical client is divided into several sections.
 
-Mappings — controller profiles, keyboard/mouse configuration and deadzones.
+### Controllers
 
-Network — SwitchNet address, UDP configuration, update rate and discovery.
+Contains:
 
-Extra — startup and application behavior.
+- Connected controller list
+- Player-slot ordering
+- Controller blacklist management
 
-Diagnostics — information useful for testing controllers and troubleshooting communication.
+### Mappings
 
-The persistent status bar provides service control, Switch wake functionality, tray controls and application status.
+Contains:
 
-Network Discovery
+- Controller mapping profiles
+- Controller-specific mappings
+- Keyboard/mouse mappings
+- Analog stick deadzones
+- Motion-related configuration
 
-SwitchNet is designed for a local-network environment.
+### Network
 
-The client can discover the SwitchNet endpoint automatically, including local network discovery mechanisms such as mDNS, while manual addressing remains available when required.
+Contains:
+
+- SwitchNet IP address
+- UDP configuration
+- Update rate
+- Automatic discovery
+
+### Extra
+
+Contains application and startup-related settings.
+
+### Diagnostics
+
+Provides information useful for:
+
+- Controller troubleshooting
+- Input backend diagnostics
+- Network diagnostics
+- Rumble diagnostics
+- Configuration verification
+
+A persistent status bar provides access to:
+
+- Service status
+- Start/Stop toggle
+- Switch wake functionality
+- Hide to tray
+- Close
+
+---
+
+# 🌐 Network Discovery
+
+SwitchNet is designed primarily for use on a **local network**.
+
+The client can automatically discover the SwitchNet endpoint using local network discovery mechanisms such as **mDNS**.
+
+Manual IP configuration remains available when automatic discovery is not appropriate or does not work in a particular network environment.
 
 Controller state is transmitted at a configurable update rate with the goal of keeping input latency low enough for real gameplay.
 
-The Goal
+---
 
-The simplest way to describe the project is:
+# 🎯 The Goal
 
-SwitchNet makes the controller follow the player instead of forcing the player to stay within wireless range of the Nintendo Switch.
+The simplest way to describe SwitchNet is:
 
-A Switch can remain permanently connected to a dock, capture setup or streaming system.
+> **SwitchNet makes the controller follow the player instead of forcing the player to stay within wireless range of the Nintendo Switch.**
+
+The Nintendo Switch can remain permanently connected to:
+
+- Its dock
+- A television
+- A capture card
+- A streaming setup
 
 The player can then move to another room, open the game stream, connect a controller to the nearby computer and continue playing.
 
-Video travels from the console to the player.
+```text
+Console ───── video/audio ─────► Player
 
-Controller input travels from the player back to the console.
+Console ◄──── controller ─────── Player
+              via SwitchNet
+```
 
-Together, the two paths make remote play inside the home practical without physically moving the Nintendo Switch.
+Together, these two paths make remote play inside the home practical without physically moving the Nintendo Switch.
 
-Inspiration: OpenPuck
+---
 
-The idea behind SwitchNet started thanks to OpenPuck.
+# 💡 Inspiration: OpenPuck
+
+The idea behind SwitchNet started thanks to [OpenPuck](https://github.com/safijari/openpuck).
 
 OpenPuck provided the original inspiration for approaching Nintendo Switch controller communication in a way that could be separated from the player's physical proximity to the console.
 
-SwitchNet grew from that inspiration into a larger experiment involving network controller transport, multiple controller families, Windows and Linux clients, motion controls, rumble, configurable mappings, multiple players and a graphical configuration interface.
+SwitchNet grew from that inspiration into a larger experiment involving:
+
+- Network controller transport
+- Multiple controller families
+- Windows and Linux clients
+- Motion controls
+- Rumble
+- Configurable mappings
+- Multiple mapping profiles
+- Multiple players
+- Keyboard and mouse emulation
+- Automatic network discovery
+- A graphical configuration interface
 
 The OpenPuck project and its contributors therefore deserve credit for inspiring the idea that eventually became SwitchNet.
 
-About the Development of SwitchNet
+---
+
+# 🤖 About the Development of SwitchNet
 
 There is one important detail about this project that I want to make completely transparent:
 
-I did not personally develop or write the source code of SwitchNet.
+> **I did not personally develop or write the source code of SwitchNet.**
 
-The entire project has been created through AI-assisted code generation.
+The entire project has been created through **AI-assisted code generation**.
 
-My contribution has instead been defining the original idea and its goals, deciding how the system should behave, requesting and designing features, testing the software on real hardware, identifying bugs and regressions, comparing different implementations, validating fixes and repeatedly iterating on the project.
+My contribution has instead been:
 
-This included extensive real-world testing of controllers, motion controls, rumble, networking, mappings, Windows and Linux behavior and the interaction between the client and the Nintendo Switch.
+- Defining the original idea and its goals
+- Deciding how the system should behave
+- Requesting and designing features
+- Testing the software on real hardware
+- Testing different controllers
+- Identifying bugs and regressions
+- Comparing different implementations
+- Validating fixes
+- Testing networking behavior
+- Testing motion controls
+- Testing rumble
+- Testing mappings
+- Testing Windows and Linux behavior
+- Repeatedly iterating on the project
 
-So while the source code itself was generated by AI, the project has been driven by human ideas, requirements, experimentation and extensive hardware testing.
+So while the source code itself was generated by AI, the project has been driven by **human ideas, requirements, experimentation, hardware testing and iteration**.
 
 This is intentionally disclosed because anyone using or contributing to the project should know how the codebase was produced.
 
-AI-generated code can contain bugs, incorrect assumptions and unexpected behavior. Code review and contributions from experienced developers are therefore especially welcome.
+AI-generated code can contain:
 
-Experimental Project
+- Bugs
+- Incorrect assumptions
+- Unexpected behavior
+- Inefficient implementations
+- Platform-specific problems
+- Security issues
 
-SwitchNet should be considered an experimental project.
+Code review and contributions from experienced developers are therefore especially welcome.
+
+---
+
+# 🧪 Experimental Project
+
+SwitchNet should be considered an **experimental project**.
 
 Controller hardware is complicated.
 
-Different operating systems expose the same controller differently, firmware revisions can change behavior, USB and Bluetooth paths may behave differently, and some advanced functionality requires communicating directly with proprietary HID protocols.
+Different operating systems can expose the same controller in completely different ways. Firmware revisions can change behavior, USB and Bluetooth paths may behave differently, and some advanced functionality requires communicating directly with controller-specific HID protocols.
 
 Real hardware testing has therefore been a fundamental part of SwitchNet's development.
 
-Bug reports are welcome, particularly when they contain information about:
+If something does not work correctly, please consider opening an issue.
 
-Operating system
-Controller model
-Connection method
-Vendor ID / Product ID
-Button or stick problems
-Gyroscope behavior
-Rumble behavior
-Relevant diagnostics
-Reproduction steps
-Support SwitchNet
+## Useful Bug Reports
 
-SwitchNet has required a considerable amount of time for the original idea, feature planning, hardware testing, troubleshooting, regression testing and repeatedly validating new implementations.
+A useful controller-related bug report should ideally include:
 
-If you enjoy the project and would like to support me for the idea, time, testing and features that went into making SwitchNet possible, you can make a donation here:
+- Operating system
+- SwitchNet version
+- Controller manufacturer and model
+- USB or Bluetooth connection
+- Vendor ID and Product ID, when available
+- Which buttons work
+- Which buttons do not work
+- Analog stick behavior
+- Gyroscope/accelerometer behavior
+- Rumble behavior
+- Relevant SwitchNet diagnostics
+- Relevant error messages
+- Steps required to reproduce the problem
 
-☕ Support me on Buy Me a Coffee
+Hardware testing is particularly valuable because many controller-specific behaviors cannot be reliably validated without the physical device.
+
+---
+
+# 📚 Documentation
+
+Additional technical documentation is included in the repository.
+
+Relevant documents include:
+
+- `HTTP_API.md`
+- `KEYBOARD_CONTROLLER.md`
+- `PARTITIONS.md`
+- `USB_HID_TEST_HISTORY.md`
+
+Platform-specific documentation is also available inside:
+
+```text
+client-python-linux/
+client-python-windows/
+```
+
+The repository additionally contains diagnostic and regression-testing utilities under:
+
+```text
+tools/
+```
+
+These tests document many of the controller and platform-specific regressions encountered during development.
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+Because much of the existing codebase was AI-generated, review from experienced developers is particularly valuable.
+
+Useful contributions include:
+
+- Code review
+- Bug fixes
+- Controller compatibility improvements
+- Testing additional hardware
+- Linux compatibility improvements
+- Windows compatibility improvements
+- Motion-control improvements
+- Rumble improvements
+- Documentation
+- Regression tests
+- Network improvements
+
+If you modify controller-specific behavior, please test the change on real hardware whenever possible.
+
+---
+
+# ☕ Support SwitchNet
+
+SwitchNet has required a considerable amount of time for:
+
+- The original idea
+- Feature planning
+- Hardware testing
+- Controller testing
+- Troubleshooting
+- Regression testing
+- Testing AI-generated implementations
+- Validating fixes
+- Designing and integrating new features
+
+If you enjoy the project and would like to support me for the **idea, time, testing and features that went into making SwitchNet possible**, you can make a donation here:
+
+### ☕ [Support me on Buy Me a Coffee](https://buymeacoffee.com/dovere)
 
 Donations are completely optional and are simply a way to support the time and effort behind the project.
 
-Disclaimer
+---
 
-SwitchNet is an independent, unofficial project.
+# 📄 License
+
+Please refer to the `LICENSE` file included with the repository for the terms under which SwitchNet is distributed.
+
+> [!NOTE]
+> Third-party projects, libraries or components used by or referenced by SwitchNet remain subject to their respective licenses.
+
+---
+
+# ⚠️ Disclaimer
+
+SwitchNet is an **independent, unofficial and experimental project**.
 
 It is not affiliated with, authorized by, sponsored by or endorsed by Nintendo, Sony, Valve, Google, Microsoft or any other hardware/software manufacturer mentioned in this project.
 
 Nintendo Switch, Nintendo Switch 2 and other product names and trademarks belong to their respective owners.
 
-SwitchNet is provided as experimental software without any guarantee of compatibility with every controller, firmware version, operating system or network configuration.
+SwitchNet is provided without any guarantee of compatibility with every:
 
-SwitchNet — stream the console, network the controllers, play anywhere in your home.
+- Controller
+- Controller firmware revision
+- Nintendo Switch firmware revision
+- Operating system
+- Driver
+- USB implementation
+- Bluetooth implementation
+- Network configuration
+
+Use the project at your own risk.
+
+---
+
+<div align="center">
+
+### 🎮 SwitchNet
+
+**Stream the console. Network the controllers. Play anywhere in your home.**
+
+</div>
