@@ -235,13 +235,3 @@ It is not affiliated with, authorized by, sponsored by or endorsed by Nintendo, 
 Nintendo Switch, Nintendo Switch 2 and other product names and trademarks belong to their respective owners.
 Compatibility with every controller, firmware revision, operating system or network configuration is not guaranteed.
 Use the project at your own risk.
-
----
-
-<div align="center">
-
-### 🎮 SwitchNet
-
-**Stream the console. Network the controllers. Play anywhere in your home.**
-
-</div>
