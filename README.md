@@ -205,9 +205,7 @@ hardware required to investigate these platforms.
 
 If you find SwitchNet useful and would like to support the time, hardware testing and experimentation behind the project:
 
-### ☕ [Support me on Buy Me a Coffee](https://buymeacoffee.com/dovere)
-
-Donations are completely optional.
+### ☕ [Buy Me a Coffee](https://buymeacoffee.com/dovere)
 
 ---
 
