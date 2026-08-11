@@ -197,12 +197,14 @@ stream.
 > requirements, technical research, development time and access to the
 > necessary testing hardware.
 
-If SwitchNet receives enough interest and support, donations may also
+# Support
+
+If you find this useful and would like to support the time,
+hardware testing and experimentation behind the project and want also
 help fund the additional consoles, controllers, adapters and development
 hardware required to investigate these platforms.
-If you find SwitchNet useful and would like to support the time, hardware testing and experimentation behind the project:
 
-# ☕ [Buy Me a Coffee](https://buymeacoffee.com/dovere)
+☕ [Buy Me a Coffee](https://buymeacoffee.com/dovere)
 
 ---
 
