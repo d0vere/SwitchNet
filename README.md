@@ -1,10 +1,31 @@
 # 🎮 SwitchNet
 
-### Network controller bridge for Nintendo Switch/OLED/2 game streaming
+The project allows you to control your Nintendo Switch/OLED/2 over your local network using almost any controller (or keyboard and mouse) connected to your PC. 
 
-> **Stream the console. Network the controllers. Play anywhere in your home.**
+By routing controller inputs over Wi-Fi/LAN, SwitchNet enables low-latency PC-to-Switch streaming, letting you play anywhere in your house at maximum resolution and refresh rate without being tethered to the console.
 
-SwitchNet lets you use controllers connected to a **Windows or Linux PC** to control a **Nintendo Switch / Switch 2 over your local network** using an ESP32-S3 Supermini.
+> [!IMPORTANT]
+> SwitchNet handles **controller input only**.
+>
+> Video and audio require a separate capture card and streaming solution.
+
+---
+
+
+> [!WARNING]
+> Every part of this project _HEAVILY_ used LLMs*
+
+---
+
+## 🛠️ How It Works
+
+The project consists of two main components working together:
+
+1. **Hardware (ESP32-S3 SuperMini)**  
+   A compact USB device plugged directly into your Nintendo Switch (Switch / OLED / Switch 2). To the console, it pretends to be a standard **Nintendo Switch Pro Controller**. Under the hood, it listens to your local network and instantly converts incoming data packets into console inputs.
+
+2. **Client Software (Windows & Linux)**  
+   A desktop application running on your PC. It reads inputs from whatever controllers or peripherals you have connected to your computer and sends them across your network to the ESP32 hardware in real-time.
 
 ```text
 Controller
@@ -12,68 +33,28 @@ Controller
     ▼
 Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───► Nintendo Switch
 ```
-> [!IMPORTANT]
-> SwitchNet handles **controller input only**.
->
-> Video and audio require a separate capture card and streaming solution.
-
-
-It is designed for game-streaming setups where the console stays connected to a dock or capture card while the player is somewhere else in the house.
-But it can be used for other purposes too like:
-- Playing in 4k60fps anywhere
-- Playing with custom controllers
-- Playing with custom mappings
-- Playing multiplayer games if you don't have more Nintendo Controllers
-- Playing with Keyboard and Mouse
-
-The controller stays with you. The console doesn't have to.
-
-> [!WARNING]
-> Every part of this project _HEAVILY_ used LLMs*
 
 ---
 
-## ✨ Features
+## 💡 Use Cases
 
-- 🌐 Low-latency controller input over LAN/Wi-Fi
-- 🎮 Multiple controllers and player slots
-- 🪟 Windows and Linux clients
-- 🔎 Automatic network discovery
-- 🕹️ Configurable controller mappings and profiles
-- 🎯 Per-controller analog stick deadzones
-- 🌀 Gyroscope and accelerometer support
-- 📳 Rumble feedback
-- ⌨️ Experimental keyboard and mouse emulation
-- 🌙 Switch 2 wake functionality
+* 📡 **Remote Play & High-FPS Streaming:** Play your Switch anywhere on your home network with high resolution and smooth frame rates.
+* ⌨️ **Keyboard & Mouse Support:** Control Switch games using standard PC peripherals.
+* 🕹️ **Custom Controllers & Remapping:** Use Xbox, PlayStation, Stadia, Steam controller with fully tailored button layouts.
+* 👥 **Easy Multiplayer:** Play local multiplayer games with friends without buying additional official Switch controllers.
 
----
 
 [![SwitchNet Intro](https://img.youtube.com/vi/f59DOEypre0/maxresdefault.jpg)](https://youtu.be/f59DOEypre0?si=1AS3WwvE7aTBhF1q)
 
 ## 🔧 What You Need
 
 - **Nintendo Switch or Nintendo Switch 2**
-- **ESP32-S3 board with native USB support** (like 15$ on Amazon)
+- **ESP32-S3 Supermini board with native USB support** (like 15$ on Amazon) (Other ESP32-S3 boards may work but should currently be considered **untested** )
 - Windows or Linux PC near the player
 - Supported controller
 - Local network accessible by both the PC and ESP32-S3
 - USB cable
 - Separate video capture (Elgato 4kS/X) and streaming setup (Apollo/Moonlight)
-
-### Tested ESP32-S3
-
-SwitchNet has primarily been developed and tested with the:
-
-**ESP32-S3 SuperMini**
-
-> [!WARNING]
-> A regular ESP32 is **not compatible**.
->
-> The board must expose the ESP32-S3 **native USB / USB OTG peripheral**. Some ESP32-S3 boards have USB connectors connected only to a USB-to-serial chip, which is not sufficient.
-
-Other ESP32-S3 boards may work but should currently be considered **untested** unless explicitly documented.
-
----
 
 ## 🚀 Getting Started
 
@@ -113,66 +94,6 @@ Nintendo Switch ───── video/audio ─────► Player
 Nintendo Switch ◄──── controller ─────── Player
                          SwitchNet
 ```
-
----
-
-## 🎮 Supported Controllers
-
-SwitchNet has been developed and tested with:
-
-- **Steam Controller 2026**
-- **Nintendo Switch 2 Pro Controller**
-- **Nintendo Switch Pro Controller**
-- **Sony DualSense**
-- **Google Stadia Controller**
-- **XInput-compatible controllers**
-- **Keyboard and mouse** *(experimental)*
-
-> [!NOTE]
-> Compatibility may vary depending on controller firmware, connection type, operating system and drivers.
-
----
-
-## 🕹️ Controller Features
-
-### Mapping
-
-Controller inputs can be remapped to the Nintendo layout, including:
-`A/B/X/Y` · `L/R` · `ZL/ZR` · `D-Pad` · `L3/R3` · `+/-` · `Home` · `Capture`
-Multiple mapping profiles can be created for supported controller families.
-
-### Motion Controls
-
-Gyroscope and accelerometer data can be forwarded from compatible controllers.
-
-### Rumble
-
-For compatible controllers, SwitchNet supports bidirectional communication:
-```text
-Controller ──► Client ──► Network ──► ESP32-S3 ──► Switch
-Controller ◄── Client ◄── Network ◄── ESP32-S3 ◄── Switch
-```
-This allows console-generated rumble feedback to reach the physical controller.
-
-### Multiple Controllers
-
-Multiple controllers can be connected to the client and assigned to player slots.
-This makes SwitchNet suitable for both single-player remote play and local multiplayer away from the console.
-
-### Keyboard & Mouse
-
-Keyboard and mouse controller emulation is available as an **experimental feature**.
-Keyboard keys can be mapped to controller buttons, while mouse movement can be mapped to analog input.
-
----
-
-## 🌐 Network
-
-SwitchNet is designed primarily for **local network use**.
-The client supports automatic discovery using mechanisms such as **mDNS**, with manual IP configuration available as a fallback.
-Controller states are transmitted over UDP at a configurable update rate to keep input latency low.
-
----
 
 ## 🧪 Experimental Project
 
@@ -242,23 +163,6 @@ v3.0 (AGPL-3.0)**. SwitchNet is also distributed under the AGPL-3.0.
 
 Many thanks to the OpenPuck project and its contributors for making
 their work available to the community.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome, particularly:
-
-- Code review and bug fixes
-- Additional controller testing
-- Controller compatibility improvements
-- Windows/Linux improvements
-- Motion and rumble improvements
-- Regression tests
-- Network improvements
-- Documentation
-
-When modifying controller-specific behavior, testing on real hardware is strongly recommended.
 
 ---
 
