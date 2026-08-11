@@ -39,7 +39,8 @@ The controller stays with you. The console doesn't have to.
 - 🛠️ Integrated diagnostics
 
 ---
-<iframe width="560" height="315" src="https://www.youtube.com/embed/f59DOEypre0?si=GpEAB_d-iyRVfU6J" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+[![SwitchNet Intro]](https://youtu.be/f59DOEypre0?si=1AS3WwvE7aTBhF1q)
 
 ## 🔧 What You Need
 
