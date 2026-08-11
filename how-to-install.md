@@ -2,18 +2,12 @@
 
 This guide explains how to set up the toolchain, compile, and flash **SwitchNet** on an **ESP32-S3 board with native USB support**, using either **Windows** or **Linux**.
 
-Project repository:
-
-```text
-https://github.com/d0vere/SwitchNet
-```
-
 > [!IMPORTANT]
 > SwitchNet requires an **ESP32-S3 with native USB support**.
 >
 > The firmware must be compiled with the USB configuration required by the project, using **USB-OTG / TinyUSB**.
 >
-> SwitchNet also uses a custom `partitions.csv`. The first installation of that partition layout should be performed through a **full USB flash**, not by flashing only the application binary and not by relying on OTA.
+> SwitchNet also uses a custom `partitions.csv`. The first installation of that partition layout should be performed through a **full USB flash**, not by flashing only the application binary
 
 ---
 
@@ -57,47 +51,11 @@ You will need:
 - a Windows or Linux PC;
 - Git;
 - Arduino CLI;
-- a Nintendo Switch / Switch OLED / Switch 2 setup compatible with the project;
 - a network connection between the PC running the SwitchNet client and the ESP32-S3.
 
-A USB charging-only cable will not work for flashing.
-
 ---
 
-# 2. How SwitchNet Works
-
-SwitchNet uses the ESP32-S3 as a network-connected USB controller device.
-
-The general data path is:
-
-```text
-Controller / Keyboard / Mouse
-              |
-              v
-             PC
-              |
-         LAN / Wi-Fi
-              |
-              v
-          ESP32-S3
-              |
-         Native USB
-              |
-              v
-       Nintendo Switch
-```
-
-The PC reads your input devices and sends controller state over the network.
-
-The ESP32-S3 receives that state and presents itself to the Nintendo Switch as a USB HID controller.
-
-This is why **native USB support is mandatory**.
-
-A board that only exposes a USB-to-UART bridge such as CH340 or CP210x is not enough unless the board also gives access to the ESP32-S3 native USB interface.
-
----
-
-# 3. Supported Hardware
+# 2. Supported Hardware
 
 The safest choice is an ESP32-S3 board with:
 
@@ -109,29 +67,23 @@ Wi-Fi:      Yes
 ```
 
 Native USB is the most important requirement.
-
 SwitchNet must be able to control the ESP32-S3 USB device peripheral directly.
-
 For generic boards, the Arduino target used in this guide is:
-
 ```text
 ESP32S3 Dev Module
 ```
-
 with FQBN:
 
 ```text
 esp32:esp32:esp32s3
 ```
-
 Other ESP32-S3 variants may work, but the actual USB wiring of the board must expose the SoC's native USB interface.
 
 ---
 
-# 4. Clone the Repository
+# 3. Clone the Repository
 
 ## Windows
-
 Open PowerShell:
 
 ```powershell
@@ -185,7 +137,7 @@ src/
 
 ---
 
-# 5. Install Arduino CLI
+# 4. Install Arduino CLI
 
 Arduino CLI is used to:
 
