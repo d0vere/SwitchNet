@@ -40,7 +40,7 @@ The controller stays with you. The console doesn't have to.
 
 ---
 
-[![SwitchNet Intro]](https://youtu.be/f59DOEypre0?si=1AS3WwvE7aTBhF1q)
+[![SwitchNet Intro]https://img.youtube.com/vi/f59DOEypre0/maxresdefault.jpg](https://youtu.be/f59DOEypre0?si=1AS3WwvE7aTBhF1q)
 
 ## 🔧 What You Need
 
