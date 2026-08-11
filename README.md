@@ -25,7 +25,7 @@ The project consists of two main components working together:
    A desktop application running on your PC. It reads inputs from whatever controllers or peripherals you have connected to your computer and sends them across your network to the ESP32 hardware in real-time.
 
 2. **Hardware (ESP32-S3 SuperMini)**  
-   A compact USB device plugged directly into your Nintendo Switch (Switch / OLED / Switch 2). To the console, it pretends to be a standard **Nintendo Switch Pro Controller**. Under the hood, it listens to your local network and instantly converts incoming data packets into console inputs.
+   A compact USB device plugged directly into your Nintendo Switch (Switch / OLED / Switch 2) dock or console. To the console, it pretends to be a standard **Nintendo Switch Pro Controller**. Under the hood, it listens to your local network and instantly converts incoming data packets into console inputs.
 
 ```text
 Controller
