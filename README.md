@@ -6,30 +6,30 @@
 
 SwitchNet lets you use controllers connected to a **Windows or Linux PC** to control a **Nintendo Switch / Switch 2 over your local network** using an ESP32-S3 Supermini.
 
-It is designed for game-streaming setups where the console stays connected to a dock or capture card while the player is somewhere else in the house.
-But it can be used for other purposes too like:
-Playing in 4k60fps anywhere
-Playing with custom controllers
-Playing with custom mappings
-Playing multiplayer games if you don't have more Nintendo Controllers
-Playing with Keyboard and Mouse
-
 ```text
 Controller
     │
     ▼
 Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───► Nintendo Switch
 ```
+> [!IMPORTANT]
+> SwitchNet handles **controller input only**.
+>
+> Video and audio require a separate capture card and streaming solution.
+
+
+It is designed for game-streaming setups where the console stays connected to a dock or capture card while the player is somewhere else in the house.
+But it can be used for other purposes too like:
+- Playing in 4k60fps anywhere
+- Playing with custom controllers
+- Playing with custom mappings
+- Playing multiplayer games if you don't have more Nintendo Controllers
+- Playing with Keyboard and Mouse
 
 The controller stays with you. The console doesn't have to.
 
 > [!WARNING]
 > Every part of this project _HEAVILY_ used LLMs*
-
-> [!IMPORTANT]
-> SwitchNet handles **controller input only**.
->
-> Video and audio require a separate capture card and streaming solution.
 
 ---
 
