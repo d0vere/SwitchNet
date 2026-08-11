@@ -88,6 +88,7 @@ Connect the SwitchNet device to the same local network as the client PC.
 ### 3. Connect it to the Switch
 
 Connect the ESP32-S3 native USB interface to the Nintendo Switch/2 or Nintendo Switch/2 Dock.
+You'll need to enable the pro controller wired communication option
 
 ### 4. Start the client
 
