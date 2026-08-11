@@ -1,12 +1,18 @@
 # 🎮 SwitchNet
 
-### Network controller bridge for Nintendo Switch and Nintendo Switch 2 game streaming
+### Network controller bridge for Nintendo Switch/OLED/2 game streaming
 
 > **Stream the console. Network the controllers. Play anywhere in your home.**
 
-SwitchNet lets you use controllers connected to a **Windows or Linux PC** to control a **Nintendo Switch / Switch 2 over your local network**.
+SwitchNet lets you use controllers connected to a **Windows or Linux PC** to control a **Nintendo Switch / Switch 2 over your local network** using an ESP32-S3 Supermini.
 
 It is designed for game-streaming setups where the console stays connected to a dock or capture card while the player is somewhere else in the house.
+But it can be used for other purposes too like:
+Playing in 4k60fps anywhere
+Playing with custom controllers
+Playing with custom mappings
+Playing multiplayer games if you don't have more Nintendo Controllers
+Playing with Keyboard and Mouse
 
 ```text
 Controller
@@ -16,6 +22,9 @@ Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───►
 ```
 
 The controller stays with you. The console doesn't have to.
+
+> [!WARNING]
+> Every part of this project _HEAVILY_ used LLMs*
 
 > [!IMPORTANT]
 > SwitchNet handles **controller input only**.
@@ -28,15 +37,14 @@ The controller stays with you. The console doesn't have to.
 
 - 🌐 Low-latency controller input over LAN/Wi-Fi
 - 🎮 Multiple controllers and player slots
-- 🪟 Windows and 🐧 Linux clients
+- 🪟 Windows and Linux clients
 - 🔎 Automatic network discovery
 - 🕹️ Configurable controller mappings and profiles
 - 🎯 Per-controller analog stick deadzones
 - 🌀 Gyroscope and accelerometer support
 - 📳 Rumble feedback
 - ⌨️ Experimental keyboard and mouse emulation
-- 🌙 Switch wake functionality
-- 🛠️ Integrated diagnostics
+- 🌙 Switch 2 wake functionality
 
 ---
 
@@ -45,12 +53,12 @@ The controller stays with you. The console doesn't have to.
 ## 🔧 What You Need
 
 - **Nintendo Switch or Nintendo Switch 2**
-- **ESP32-S3 board with native USB support**
+- **ESP32-S3 board with native USB support** (like 15$ on Amazon)
 - Windows or Linux PC near the player
 - Supported controller
 - Local network accessible by both the PC and ESP32-S3
 - USB cable
-- Separate video capture/streaming setup
+- Separate video capture (Elgato 4kS/X) and streaming setup (Apollo/Moonlight)
 
 ### Tested ESP32-S3
 
@@ -71,7 +79,7 @@ Other ESP32-S3 boards may work but should currently be considered **untested** u
 
 ### 1. Flash the ESP32-S3
 
-Flash the SwitchNet firmware onto a compatible ESP32-S3 board.
+Compile and Flash the SwitchNet firmware onto a compatible ESP32-S3 board with arduino-cli.
 
 ### 2. Configure Wi-Fi
 
@@ -79,7 +87,7 @@ Connect the SwitchNet device to the same local network as the client PC.
 
 ### 3. Connect it to the Switch
 
-Connect the ESP32-S3 native USB interface to the Nintendo Switch / Switch 2.
+Connect the ESP32-S3 native USB interface to the Nintendo Switch/2 or Nintendo Switch/2 Dock.
 
 ### 4. Start the client
 
@@ -97,7 +105,6 @@ Connect one or more controllers to the client PC, configure mappings/player slot
 ### 6. Start your video stream
 
 Start your preferred capture/streaming solution.
-
 Your video stream travels from the console to you, while SwitchNet sends controller input back to the console.
 
 ```text
@@ -118,21 +125,7 @@ SwitchNet has been developed and tested with:
 - **Sony DualSense**
 - **Google Stadia Controller**
 - **XInput-compatible controllers**
-- **Generic gamepads**
 - **Keyboard and mouse** *(experimental)*
-
-### Compatibility
-
-| Controller | Windows | Linux | Motion | Rumble |
-|---|:---:|:---:|:---:|:---:|
-| Nintendo Switch 2 Pro Controller | ✅ | ✅ | ✅ | ✅ |
-| Nintendo Switch Pro Controller | ✅ | ✅ | Supported | Supported |
-| Sony DualSense | ✅ | ✅ | ✅ | Supported |
-| Steam Controller | ✅ | ✅ | Supported | Supported |
-| Google Stadia Controller | ✅ | ✅ | Controller dependent | Where available |
-| XInput controllers | ✅ | Platform dependent | Controller dependent | Platform dependent |
-| Generic gamepads | Platform dependent | Platform dependent | Controller dependent | Controller dependent |
-| Keyboard / Mouse | Experimental | Experimental | — | — |
 
 > [!NOTE]
 > Compatibility may vary depending on controller firmware, connection type, operating system and drivers.
@@ -144,64 +137,38 @@ SwitchNet has been developed and tested with:
 ### Mapping
 
 Controller inputs can be remapped to the Nintendo layout, including:
-
 `A/B/X/Y` · `L/R` · `ZL/ZR` · `D-Pad` · `L3/R3` · `+/-` · `Home` · `Capture`
-
 Multiple mapping profiles can be created for supported controller families.
 
 ### Motion Controls
 
 Gyroscope and accelerometer data can be forwarded from compatible controllers.
 
-Controller-specific processing is used where necessary to translate motion data into the format expected by the console.
-
 ### Rumble
 
 For compatible controllers, SwitchNet supports bidirectional communication:
-
 ```text
 Controller ──► Client ──► Network ──► ESP32-S3 ──► Switch
 Controller ◄── Client ◄── Network ◄── ESP32-S3 ◄── Switch
 ```
-
 This allows console-generated rumble feedback to reach the physical controller.
 
 ### Multiple Controllers
 
 Multiple controllers can be connected to the client and assigned to player slots.
-
 This makes SwitchNet suitable for both single-player remote play and local multiplayer away from the console.
 
 ### Keyboard & Mouse
 
 Keyboard and mouse controller emulation is available as an **experimental feature**.
-
 Keyboard keys can be mapped to controller buttons, while mouse movement can be mapped to analog input.
-
----
-
-## 🪟 Windows & 🐧 Linux
-
-SwitchNet provides clients for both platforms.
-
-Because controller APIs differ significantly between operating systems, SwitchNet uses platform-specific backends where necessary, including technologies such as:
-
-- HID / HIDRaw
-- USB
-- evdev
-- XInput
-- Controller-specific protocols
-
-This allows advanced functionality such as motion controls, additional buttons and rumble to be preserved when generic gamepad APIs are insufficient.
 
 ---
 
 ## 🌐 Network
 
 SwitchNet is designed primarily for **local network use**.
-
 The client supports automatic discovery using mechanisms such as **mDNS**, with manual IP configuration available as a fallback.
-
 Controller states are transmitted over UDP at a configurable update rate to keep input latency low.
 
 ---
@@ -209,20 +176,16 @@ Controller states are transmitted over UDP at a configurable update rate to keep
 ## 🧪 Experimental Project
 
 SwitchNet is experimental software.
-
 Controller behavior can vary depending on:
-
 - Operating system
 - Controller firmware
 - USB vs Bluetooth
 - Drivers
 - Hardware revisions
 - Other software accessing the controller
-
 Real-hardware testing is therefore especially valuable.
 
 If you encounter a problem, please open an issue and include, when relevant:
-
 - Operating system and SwitchNet version
 - Controller manufacturer/model
 - USB or Bluetooth connection
@@ -260,9 +223,7 @@ tools/
 ## 🤖 AI-Assisted Development
 
 SwitchNet was created using **AI-assisted code generation**.
-
 The project has been driven through human-defined requirements, feature design, hardware testing, debugging, validation and repeated iteration, while the source code itself was generated with AI assistance.
-
 This is disclosed for transparency. AI-generated code may contain bugs, incorrect assumptions, security issues or platform-specific problems, so **code review and contributions from experienced developers are especially welcome**.
 
 ---
@@ -367,13 +328,9 @@ respective licenses.
 ## ⚠️ Disclaimer
 
 SwitchNet is an **independent, unofficial and experimental project**.
-
 It is not affiliated with, authorized by, sponsored by or endorsed by Nintendo, Sony, Valve, Google, Microsoft or any other manufacturer mentioned in this project.
-
 Nintendo Switch, Nintendo Switch 2 and other product names and trademarks belong to their respective owners.
-
 Compatibility with every controller, firmware revision, operating system or network configuration is not guaranteed.
-
 Use the project at your own risk.
 
 ---
