@@ -201,11 +201,9 @@ If SwitchNet receives enough interest and support, donations may also
 help fund the additional consoles, controllers, adapters and development
 hardware required to investigate these platforms.
 
-## ☕ Support
+## ☕ [Buy Me a Coffee](https://buymeacoffee.com/dovere)
 
 If you find SwitchNet useful and would like to support the time, hardware testing and experimentation behind the project:
-
-### ☕ [Buy Me a Coffee](https://buymeacoffee.com/dovere)
 
 ---
 
