@@ -49,43 +49,29 @@ Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───►
 ## 🔧 What You Need
 
 - **Nintendo Switch or Nintendo Switch 2**
-- **ESP32-S3 Supermini board with native USB support** (like 15$ on Amazon) (Other ESP32-S3 boards may work but should currently be considered **untested** )
+- **[ESP32-S3]([https://www.amazon.com/dp/B0GSZ7FD6T]) board with native USB support** (Other ESP32-S3 boards may work but should currently be considered **untested** )
 - Windows or Linux PC near the player
 - Supported controller
 - Local network accessible by both the PC and ESP32-S3
 - USB cable
 - Separate video capture (Elgato 4kS/X) and streaming setup (Apollo/Moonlight)
 
-## 🚀 Getting Started
+## 🚀 Quick Guide
 
 ### 1. Flash the ESP32-S3
-
 Compile and Flash the SwitchNet firmware onto a compatible ESP32-S3 board with arduino-cli.
 
 ### 2. Configure Wi-Fi
-
 Connect the SwitchNet device to the same local network as the client PC.
 
 ### 3. Connect it to the Switch
-
-Connect the ESP32-S3 native USB interface to the Nintendo Switch/2 or Nintendo Switch/2 Dock.
-You'll need to enable the pro controller wired communication option
+Plug the ESP32-S3 native USB interface to the Nintendo Switch/2 Dock or Nintendo Switch/2 console.
+[You'll need to enable the pro controller wired communication option](https://www.nintendo.com/en-gb/Support/Troubleshooting/How-to-Enable-Disable-Pro-Controller-Wired-Communication-1516284.html)
 
 ### 4. Start the client
+Run the SwitchNet client, it can automatically discover the SwitchNet device on the network and the attached controllers. You can also enter its IP address manually. Press Start
 
-Run the SwitchNet client on:
-
-- Windows
-- Linux
-
-The client can automatically discover the SwitchNet device on the network. You can also enter its IP address manually.
-
-### 5. Connect your controller
-
-Connect one or more controllers to the client PC, configure mappings/player slots if needed, and start the SwitchNet service.
-
-### 6. Start your video stream
-
+### 5. Start your video stream
 Start your preferred capture/streaming solution.
 Your video stream travels from the console to you, while SwitchNet sends controller input back to the console.
 
@@ -95,28 +81,7 @@ Nintendo Switch ◄──── controller ─────── Player
                          SwitchNet
 ```
 
-## 🧪 Experimental Project
-
-SwitchNet is experimental software.
-Controller behavior can vary depending on:
-- Operating system
-- Controller firmware
-- USB vs Bluetooth
-- Drivers
-- Hardware revisions
-- Other software accessing the controller
-Real-hardware testing is therefore especially valuable.
-
-If you encounter a problem, please open an issue and include, when relevant:
-- Operating system and SwitchNet version
-- Controller manufacturer/model
-- USB or Bluetooth connection
-- What works and what doesn't
-- Motion/rumble behavior
-- Relevant diagnostics or error messages
-- Steps to reproduce the problem
-
----
+For the full guide see [build instructions document](./how-to-install.md)
 
 ## 📚 Documentation
 
