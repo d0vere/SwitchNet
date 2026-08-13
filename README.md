@@ -2,7 +2,7 @@
 
 The project allows you to wake up and control your Nintendo Switch/OLED/2 over your local network using almost any controller (or keyboard and mouse) connected to your PC. 
 
-By routing controller inputs over Wi-Fi/LAN, SwitchNet enables low-latency PC-to-Switch streaming, letting you play anywhere in your house at maximum resolution and refresh rate without being tethered to the console.
+By routing controller inputs over Wi-Fi/LAN, SwitchNet enables low-latency PC-to-Switch streaming, letting you play anywhere in your house at maximum resolution and refresh rate without being tethered to the console or experiment with multiple/uncommon input devices.
 
 > [!IMPORTANT]
 > SwitchNet handles **controller input only**.
