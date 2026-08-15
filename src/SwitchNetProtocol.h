@@ -18,6 +18,7 @@ namespace SwitchNetProtocol
     {
         None = 0,
         RequestAcknowledgement = 1U << 0,
+        ControllerDisconnect = 1U << 1,
         ControllerSlot2 = 1U << 8
     };
 

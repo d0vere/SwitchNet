@@ -39,7 +39,7 @@ from switch_pro_windows import (
 )
 
 
-APP_VERSION = "1.26.0"
+APP_VERSION = "1.26.6"
 DEFAULT_PORT = 5454
 CLIENT_API_HOST = "127.0.0.1"
 CLIENT_API_PORT = 5455
@@ -2486,13 +2486,15 @@ def pack_payload(vals):
     )
 
 
+PACKET_FLAG_CONTROLLER_DISCONNECT = 0x0002
+
 def controller_slot_flags(slot):
     """Encode the controller slot exactly like firmware SwitchNetProtocol.h."""
     return 0x0100 if int(slot) == 1 else 0x0000
 
 
-def make_packet(payload, session, seq, us, slot=0):
-    flags = controller_slot_flags(slot)
+def make_packet(payload, session, seq, us, slot=0, extra_flags=0):
+    flags = controller_slot_flags(slot) | (int(extra_flags) & 0x00FF)
     header = struct.pack("<IBBHHHIII", 0x544E5753, 3, 1, 24, 36, flags,
                          session, seq & 0xFFFFFFFF, us & 0xFFFFFFFF)
     body = header + payload
@@ -2570,7 +2572,10 @@ class Worker:
         }
 
     def start(self, host, port, rate, index, dz, labels, backend, steam_mapping=None, steam_gyro_trim=False, switch2_rear_mapping=None, controller_mapping=None, slot=0, controller_path="", controller_paths=None, keyboard_mapping=None, keyboard_exclusive=True, keyboard_release_key=DEFAULT_RELEASE_KEY, mouse_sensitivity=6500):
-        self.stop()
+        if not self.stop():
+            raise RuntimeError(
+                "Previous controller worker did not stop cleanly; start was cancelled to protect native input handles."
+            )
         with self.life_lock:
             self.stop_evt.clear()
             self.pub(
@@ -2594,20 +2599,22 @@ class Worker:
             self.thread.start()
 
     def stop(self):
-        # Only the network worker owns the HID readers. The old implementation
-        # stopped HID threads from the GUI while the network thread was still
-        # polling them, which could race native ReadFile/CloseHandle and crash
-        # the entire Python process.
+        # The worker exclusively owns all native HID/Win32 readers. Never clear
+        # stop_evt or launch a replacement worker until this thread is confirmed
+        # dead; overlapping native readers can terminate the Python process.
         self.stop_evt.set()
         with self.life_lock:
             thread = self.thread
         if thread and thread.is_alive() and thread is not threading.current_thread():
             thread.join(4.0)
+        alive = bool(thread and thread.is_alive())
         with self.life_lock:
-            if self.thread is thread and (not thread or not thread.is_alive()):
+            if self.thread is thread and not alive:
                 self.thread = None
-        if thread and thread.is_alive():
-            self.pub(status="Stopping service...")
+        if alive:
+            self.pub(status="Stopping service... native input cleanup still in progress")
+            return False
+        return True
 
     def get(self):
         with self.lock:
@@ -2874,12 +2881,29 @@ class Worker:
             self.pub(status=f"Worker error: {exc}", errors=err + 1)
         finally:
             neutral = pack_payload(neutral_values())
-            for _ in range(8):
+            # Flush a neutral state on the correct controller slot first. Then
+            # explicitly release ownership so an immediate Stop -> Start can
+            # reconnect from a new ephemeral UDP source port without waiting for
+            # the firmware timeout. Repeated release packets tolerate UDP loss.
+            for _ in range(5):
                 try:
-                    sock.sendto(make_packet(neutral, session, seq, 0), dst)
+                    sock.sendto(make_packet(neutral, session, seq, 0, slot), dst)
                 except OSError:
                     pass
-                seq += 1
+                seq = (seq + 1) & 0xFFFFFFFF
+                time.sleep(0.002)
+            for _ in range(3):
+                try:
+                    sock.sendto(
+                        make_packet(
+                            neutral, session, seq, 0, slot,
+                            PACKET_FLAG_CONTROLLER_DISCONNECT,
+                        ),
+                        dst,
+                    )
+                except OSError:
+                    pass
+                seq = (seq + 1) & 0xFFFFFFFF
                 time.sleep(0.002)
             self.xi.rumble(index, 0, 0)
             try:
@@ -5416,8 +5440,11 @@ class App(tk.Tk):
             key=d["key"]
             if key in self.controller_blacklist or key in assigned:continue
             seen=self._controller_seen_counts.get(key,0)
-            indices=list(range(2,len(slots))) if d.get("virtual") else list(range(len(slots)))
-            if d.get("virtual") and len(slots)<4:indices+=list(range(len(slots),4))
+            # Keyboard + Mouse is a first-class virtual controller and follows
+            # the same P1/P2 priority roster semantics as physical controllers.
+            # Do not force virtual devices into inactive slots 3+; doing so made
+            # P1 behavior depend on prior roster state and manual reordering.
+            indices=list(range(len(slots)))
             placed=False
             for i in indices:
                 while i>=len(slots):slots.append("")

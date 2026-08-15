@@ -161,6 +161,8 @@ RIM_TYPEMOUSE=0
 RID_INPUT=0x10000003
 RIDEV_INPUTSINK=0x00000100
 RIDEV_NOLEGACY=0x00000030
+RIDEV_REMOVE=0x00000001
+ERROR_CLASS_ALREADY_EXISTS=1410
 HID_USAGE_PAGE_GENERIC=0x01
 HID_USAGE_GENERIC_MOUSE=0x02
 
@@ -239,8 +241,14 @@ class WindowsKeyboardMouseReader:
         self.user32.UnhookWindowsHookEx.argtypes=[ctypes.c_void_p]
         self.user32.PostThreadMessageW.argtypes=[wintypes.DWORD,wintypes.UINT,wintypes.WPARAM,wintypes.LPARAM]
         self.kernel32.GetModuleHandleW.restype=ctypes.c_void_p
+        self.kernel32.GetCurrentThreadId.argtypes=[]
+        self.kernel32.GetCurrentThreadId.restype=wintypes.DWORD
+        self.kernel32.GetLastError.argtypes=[]
+        self.kernel32.GetLastError.restype=wintypes.DWORD
         self.user32.RegisterClassW.argtypes=[ctypes.POINTER(WNDCLASSW)]
         self.user32.RegisterClassW.restype=wintypes.WORD
+        self.user32.UnregisterClassW.argtypes=[wintypes.LPCWSTR,HINSTANCE_T]
+        self.user32.UnregisterClassW.restype=wintypes.BOOL
         self.user32.CreateWindowExW.argtypes=[
             wintypes.DWORD,wintypes.LPCWSTR,wintypes.LPCWSTR,wintypes.DWORD,
             ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,
@@ -264,6 +272,7 @@ class WindowsKeyboardMouseReader:
         self.user32.GetRawInputData.restype=wintypes.UINT
         self.user32.DefWindowProcW.restype=LRESULT
         self.thread=None; self.thread_id=0; self.ready=threading.Event(); self.stop_evt=threading.Event()
+        self.lifecycle_lock=threading.RLock()
         self.lock=threading.Lock(); self.keys_down=set(); self.mouse_dx=0; self.mouse_dy=0
         self.last_mouse=None; self.exclusive_active=False; self.status="inactive"
         self.keyboard_hook=None; self.mouse_hook=None; self._kbd_cb=None; self._mouse_cb=None
@@ -273,19 +282,33 @@ class WindowsKeyboardMouseReader:
         self.exclusive_requested=True
         self.raw_hwnd=None
         self._wndproc=None
-        self._window_class_name=f"SwitchNetRawMouse_{id(self):x}"
+        self._window_class_prefix=f"SwitchNetRawMouse_{id(self):x}"
+        self._generation=0
+        self._registered_class_name=None
+        self._registered_hinstance=None
+        self._retired_callbacks=[]
 
     def start(self,mapping=None,exclusive=True,release_key=DEFAULT_RELEASE_KEY):
-        self.stop(); self.release_key=normalized_release_key(release_key)
-        self.mapping=mapping_without_release_conflict(mapping,self.release_key)
-        self.requested=bool(exclusive)
-        self.exclusive_requested=bool(exclusive)
-        self.controller_enabled=True
-        self.mouse_filter.reset()
-        self.stop_evt.clear(); self.ready.clear()
-        self.thread=threading.Thread(target=self._run,name="SwitchNet-KBM-Hooks",daemon=True)
-        self.thread.start(); self.ready.wait(2.0)
-        return bool(self.keyboard_hook and self.mouse_hook)
+        with self.lifecycle_lock:
+            if not self.stop():
+                self.status="Keyboard+Mouse cleanup still in progress"
+                return False
+            self.release_key=normalized_release_key(release_key)
+            self.mapping=mapping_without_release_conflict(mapping,self.release_key)
+            self.requested=bool(exclusive)
+            self.exclusive_requested=bool(exclusive)
+            self.controller_enabled=True
+            self.mouse_filter.reset()
+            self.stop_evt.clear(); self.ready.clear()
+            thread=threading.Thread(target=self._run,name="SwitchNet-KBM-Hooks",daemon=True)
+            self.thread=thread
+            thread.start()
+        self.ready.wait(2.0)
+        return bool(
+            self.thread is thread and
+            thread.is_alive() and
+            self.keyboard_hook and self.mouse_hook
+        )
 
     def _set_toggle_state(self,enabled):
         self.controller_enabled=bool(enabled)
@@ -309,6 +332,20 @@ class WindowsKeyboardMouseReader:
             )
 
     def _run(self):
+        # Every lifecycle generation gets its own window class. A WNDCLASSW
+        # retains the native callback pointer passed to RegisterClassW; reusing
+        # a class after replacing the ctypes callback can leave Windows calling
+        # a stale Python trampoline and crash the process on the next Start.
+        with self.lifecycle_lock:
+            self._generation += 1
+            generation = self._generation
+        class_name=f"{self._window_class_prefix}_{generation}"
+        hmod=None
+        class_registered=False
+        hwnd=None
+        keyboard_hook=None
+        mouse_hook_handle=None
+
         self.thread_id=self.kernel32.GetCurrentThreadId()
         mapped={VK.get(v) for v in self.mapping.values()}
         mapped.discard(None)
@@ -325,7 +362,6 @@ class WindowsKeyboardMouseReader:
                 up=int(wParam) in (WM_KEYUP,WM_SYSKEYUP)
 
                 if key and (down or up):
-                    # Release key is observed even while the controller is OFF.
                     if key==self.release_key and down:
                         self._set_toggle_state(not self.controller_enabled)
                         return 1
@@ -339,15 +375,11 @@ class WindowsKeyboardMouseReader:
                         if self.exclusive_active and vk in mapped:
                             return 1
 
-            return self.user32.CallNextHookEx(
-                None,nCode,wParam,lParam
-            )
+            return self.user32.CallNextHookEx(None,nCode,wParam,lParam)
 
         @HOOKPROC
         def mouse_hook(nCode,wParam,lParam):
-            # Mouse motion is read from WM_INPUT, not screen coordinates.
-            # The low-level hook exists only to suppress legacy mouse messages
-            # while exclusive Keyboard+Mouse mode is ON.
+            # Mouse movement comes from Raw Input, not screen coordinates.
             if (
                 nCode==HC_ACTION and
                 self.controller_enabled and
@@ -355,125 +387,178 @@ class WindowsKeyboardMouseReader:
                 int(wParam) in _MOUSE_MESSAGES
             ):
                 return 1
-
-            return self.user32.CallNextHookEx(
-                None,nCode,wParam,lParam
-            )
+            return self.user32.CallNextHookEx(None,nCode,wParam,lParam)
 
         @WNDPROC
-        def wndproc(hwnd,msg,wParam,lParam):
+        def wndproc(hwnd_value,msg,wParam,lParam):
             if msg==WM_INPUT:
                 size=wintypes.UINT(0)
                 header_size=ctypes.sizeof(RAWINPUTHEADER)
                 self.user32.GetRawInputData(
-                    lParam,RID_INPUT,None,
-                    ctypes.byref(size),header_size
+                    lParam,RID_INPUT,None,ctypes.byref(size),header_size
                 )
                 if size.value:
                     buf=ctypes.create_string_buffer(size.value)
                     got=self.user32.GetRawInputData(
-                        lParam,RID_INPUT,buf,
-                        ctypes.byref(size),header_size
+                        lParam,RID_INPUT,buf,ctypes.byref(size),header_size
                     )
                     if got!=0xFFFFFFFF:
-                        raw=ctypes.cast(
-                            buf,ctypes.POINTER(RAWINPUT)
-                        ).contents
-                        if (
-                            raw.header.dwType==RIM_TYPEMOUSE and
-                            self.controller_enabled
-                        ):
+                        raw=ctypes.cast(buf,ctypes.POINTER(RAWINPUT)).contents
+                        if raw.header.dwType==RIM_TYPEMOUSE and self.controller_enabled:
                             with self.lock:
                                 self.mouse_dx+=int(raw.mouse.lLastX)
                                 self.mouse_dy+=int(raw.mouse.lLastY)
                 return 0
+            return self.user32.DefWindowProcW(hwnd_value,msg,wParam,lParam)
 
-            return self.user32.DefWindowProcW(
-                hwnd,msg,wParam,lParam
-            )
-
+        # Keep all ctypes callback trampolines strongly referenced for the whole
+        # lifetime of the hooks/window class, including native teardown.
         self._kbd_cb=kbd
         self._mouse_cb=mouse_hook
         self._wndproc=wndproc
 
-        hmod=self.kernel32.GetModuleHandleW(None)
+        try:
+            hmod=self.kernel32.GetModuleHandleW(None)
+            wc=WNDCLASSW()
+            wc.lpfnWndProc=self._wndproc
+            wc.hInstance=hmod
+            wc.lpszClassName=class_name
+            atom=self.user32.RegisterClassW(ctypes.byref(wc))
+            if not atom:
+                raise OSError(
+                    int(self.kernel32.GetLastError()),
+                    "RegisterClassW failed for Keyboard+Mouse Raw Input window"
+                )
+            class_registered=True
+            self._registered_class_name=class_name
+            self._registered_hinstance=hmod
 
-        wc=WNDCLASSW()
-        wc.lpfnWndProc=self._wndproc
-        wc.hInstance=hmod
-        wc.lpszClassName=self._window_class_name
-        self.user32.RegisterClassW(ctypes.byref(wc))
+            hwnd=self.user32.CreateWindowExW(
+                0,class_name,"SwitchNet Raw Mouse",
+                0,0,0,0,0,None,None,hmod,None
+            )
+            if not hwnd:
+                raise OSError(
+                    int(self.kernel32.GetLastError()),
+                    "CreateWindowExW failed for Keyboard+Mouse Raw Input window"
+                )
+            self.raw_hwnd=hwnd
 
-        # Message-only/raw-input target. A tiny hidden top-level window works
-        # across Python/Win32 versions more reliably than HWND_MESSAGE here.
-        hwnd=self.user32.CreateWindowExW(
-            0,self._window_class_name,"SwitchNet Raw Mouse",
-            0,0,0,0,0,None,None,hmod,None
-        )
-        self.raw_hwnd=hwnd
-
-        if hwnd:
             rid=RAWINPUTDEVICE(
-                HID_USAGE_PAGE_GENERIC,
-                HID_USAGE_GENERIC_MOUSE,
-                RIDEV_INPUTSINK,
-                hwnd,
+                HID_USAGE_PAGE_GENERIC,HID_USAGE_GENERIC_MOUSE,
+                RIDEV_INPUTSINK,hwnd,
             )
-            self.user32.RegisterRawInputDevices(
+            if not self.user32.RegisterRawInputDevices(
                 ctypes.byref(rid),1,ctypes.sizeof(rid)
+            ):
+                raise OSError(
+                    int(self.kernel32.GetLastError()),
+                    "RegisterRawInputDevices failed for Keyboard+Mouse"
+                )
+
+            keyboard_hook=self.user32.SetWindowsHookExW(
+                WH_KEYBOARD_LL,self._kbd_cb,hmod,0
             )
+            if not keyboard_hook:
+                raise OSError(
+                    int(self.kernel32.GetLastError()),
+                    "SetWindowsHookExW failed for keyboard hook"
+                )
+            self.keyboard_hook=keyboard_hook
 
-        self.keyboard_hook=self.user32.SetWindowsHookExW(
-            WH_KEYBOARD_LL,self._kbd_cb,hmod,0
-        )
-        self.mouse_hook=self.user32.SetWindowsHookExW(
-            WH_MOUSE_LL,self._mouse_cb,hmod,0
-        )
+            mouse_hook_handle=self.user32.SetWindowsHookExW(
+                WH_MOUSE_LL,self._mouse_cb,hmod,0
+            )
+            if not mouse_hook_handle:
+                raise OSError(
+                    int(self.kernel32.GetLastError()),
+                    "SetWindowsHookExW failed for mouse hook"
+                )
+            self.mouse_hook=mouse_hook_handle
 
-        self.controller_enabled=True
-        self.exclusive_active=bool(
-            self.requested and
-            self.keyboard_hook and
-            self.mouse_hook
-        )
-        self.status=(
-            f"Keyboard+Mouse ON · exclusive · raw mouse · "
-            f"{self.release_key} toggles OFF"
-            if self.exclusive_active else
-            f"Keyboard+Mouse ON · background · raw mouse · "
-            f"{self.release_key} toggles OFF"
-        )
-        self.ready.set()
+            self.controller_enabled=True
+            self.exclusive_active=bool(self.requested)
+            self.status=(
+                f"Keyboard+Mouse ON · exclusive · raw mouse · "
+                f"{self.release_key} toggles OFF"
+                if self.exclusive_active else
+                f"Keyboard+Mouse ON · background · raw mouse · "
+                f"{self.release_key} toggles OFF"
+            )
+            self.ready.set()
 
-        msg=ctypes.create_string_buffer(64)
-        while (
-            not self.stop_evt.is_set() and
-            self.user32.GetMessageW(
-                ctypes.byref(msg),None,0,0
-            )>0
-        ):
-            self.user32.TranslateMessage(ctypes.byref(msg))
-            self.user32.DispatchMessageW(ctypes.byref(msg))
+            msg=wintypes.MSG()
+            while not self.stop_evt.is_set():
+                result=self.user32.GetMessageW(ctypes.byref(msg),None,0,0)
+                if result<=0:
+                    break
+                self.user32.TranslateMessage(ctypes.byref(msg))
+                self.user32.DispatchMessageW(ctypes.byref(msg))
 
-        for hook in (self.keyboard_hook,self.mouse_hook):
-            if hook:
+        except Exception as exc:
+            self.controller_enabled=False
+            self.exclusive_active=False
+            self.status=f"Keyboard+Mouse initialization failed: {exc}"
+            self.ready.set()
+        finally:
+            # Hooks must be removed before their ctypes callbacks can be released.
+            for hook in (keyboard_hook,mouse_hook_handle):
+                if hook:
+                    try:
+                        self.user32.UnhookWindowsHookEx(hook)
+                    except Exception:
+                        pass
+
+            # Remove the Raw Input registration while its target window is still
+            # valid, then destroy the window and unregister the WNDCLASS. This is
+            # what makes repeated Stop -> Start cycles safe.
+            if hwnd:
                 try:
-                    self.user32.UnhookWindowsHookEx(hook)
+                    remove=RAWINPUTDEVICE(
+                        HID_USAGE_PAGE_GENERIC,HID_USAGE_GENERIC_MOUSE,
+                        RIDEV_REMOVE,None,
+                    )
+                    self.user32.RegisterRawInputDevices(
+                        ctypes.byref(remove),1,ctypes.sizeof(remove)
+                    )
+                except Exception:
+                    pass
+                try:
+                    self.user32.DestroyWindow(hwnd)
                 except Exception:
                     pass
 
-        if self.raw_hwnd:
-            try:
-                self.user32.DestroyWindow(self.raw_hwnd)
-            except Exception:
-                pass
+            class_unregistered=not class_registered
+            if class_registered and hmod:
+                try:
+                    class_unregistered=bool(
+                        self.user32.UnregisterClassW(class_name,hmod)
+                    )
+                except Exception:
+                    class_unregistered=False
 
-        self.keyboard_hook=None
-        self.mouse_hook=None
-        self.raw_hwnd=None
-        self.controller_enabled=False
-        self.exclusive_active=False
-        self.status="inactive"
+            # If Windows refuses class removal, retain the callback trampolines
+            # for process lifetime. This is a last-resort safety net against a
+            # native class retaining a pointer to garbage-collected Python code.
+            if not class_unregistered:
+                self._retired_callbacks.append(
+                    (class_name,self._kbd_cb,self._mouse_cb,self._wndproc)
+                )
+
+            self.keyboard_hook=None
+            self.mouse_hook=None
+            self.raw_hwnd=None
+            self._registered_class_name=None
+            self._registered_hinstance=None
+            self.controller_enabled=False
+            self.exclusive_active=False
+            with self.lock:
+                self.keys_down.clear()
+                self.mouse_dx=0
+                self.mouse_dy=0
+                self.mouse_filter.reset()
+            if not self.status.startswith("Keyboard+Mouse initialization failed"):
+                self.status="inactive"
 
     def consume(self):
         with self.lock:
@@ -500,10 +585,23 @@ class WindowsKeyboardMouseReader:
         )
 
     def stop(self):
-        self.stop_evt.set()
-        if self.thread_id:
-            try:self.user32.PostThreadMessageW(self.thread_id,WM_QUIT,0,0)
-            except Exception:pass
-        if self.thread and self.thread.is_alive() and self.thread is not threading.current_thread():
-            self.thread.join(2.0)
-        self.thread=None; self.thread_id=0
+        with self.lifecycle_lock:
+            self.stop_evt.set()
+            thread=self.thread
+            thread_id=self.thread_id
+            if thread_id:
+                try:self.user32.PostThreadMessageW(thread_id,WM_QUIT,0,0)
+                except Exception:pass
+        if thread and thread.is_alive() and thread is not threading.current_thread():
+            thread.join(3.0)
+        alive=bool(thread and thread.is_alive())
+        with self.lifecycle_lock:
+            # Never forget a live hook thread. start() must not clear the shared
+            # stop event until native hooks and their callback objects are gone.
+            if self.thread is thread and not alive:
+                self.thread=None
+                self.thread_id=0
+            if alive:
+                self.status="Keyboard+Mouse cleanup still in progress"
+                return False
+        return True

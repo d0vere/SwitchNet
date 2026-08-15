@@ -11,7 +11,8 @@ PacketDecoder::Result PacketDecoder::decode(
     std::uint32_t& sessionId,
     std::uint32_t& sequence,
     std::uint32_t& clientTimestampUs,
-    std::uint8_t& controllerSlot
+    std::uint8_t& controllerSlot,
+    std::uint16_t& packetFlags
 ) const
 {
     using namespace SwitchNetProtocol;
@@ -76,9 +77,10 @@ PacketDecoder::Result PacketDecoder::decode(
     sessionId = packet.header.sessionId;
     sequence = packet.header.sequence;
     clientTimestampUs = packet.header.clientTimestampUs;
+    packetFlags = packet.header.flags;
     controllerSlot =
         controllerSlotFromFlags(
-            packet.header.flags
+            packetFlags
         );
 
     if (controllerSlot >= MAX_CONTROLLER_SLOTS)

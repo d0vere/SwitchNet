@@ -48,7 +48,7 @@ except ImportError:
     pyusb_core = None
     pyusb_util = None
 
-APP_VERSION = "1.26.4"
+APP_VERSION = "1.26.6"
 DEFAULT_PORT = 5454
 CLIENT_API_HOST = "127.0.0.1"
 CLIENT_API_PORT = 5455

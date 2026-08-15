@@ -28,7 +28,8 @@ public:
         std::uint32_t& sessionId,
         std::uint32_t& sequence,
         std::uint32_t& clientTimestampUs,
-        std::uint8_t& controllerSlot
+        std::uint8_t& controllerSlot,
+        std::uint16_t& packetFlags
     ) const;
 
     static const char* resultName(Result result);

@@ -352,6 +352,7 @@ void UdpServer::processPacket(int packetSize)
     std::uint32_t decodedSequence = 0;
     std::uint32_t decodedTimestampUs = 0;
     std::uint8_t controllerSlot = 0;
+    std::uint16_t decodedFlags = SwitchNetProtocol::None;
 
     const PacketDecoder::Result result =
         decoder_.decode(
@@ -363,7 +364,8 @@ void UdpServer::processPacket(int packetSize)
             decodedSessionId,
             decodedSequence,
             decodedTimestampUs,
-            controllerSlot
+            controllerSlot,
+            decodedFlags
         );
 
     if (result != PacketDecoder::Result::Ok)
@@ -384,6 +386,35 @@ void UdpServer::processPacket(int packetSize)
 
     ClientSlot& client =
         clients_[controllerSlot];
+
+    if (
+        (decodedFlags & SwitchNetProtocol::ControllerDisconnect) != 0
+    )
+    {
+        // A release packet is valid only for the exact owner. If the slot is
+        // already free, silently ignore duplicates; this makes repeated UDP
+        // release packets safe and idempotent.
+        if (!client.connected)
+        {
+            return;
+        }
+
+        if (
+            remoteIp == client.ip &&
+            remotePort == client.port &&
+            decodedSessionId == client.sessionId
+        )
+        {
+            Serial.print("[UDP] P");
+            Serial.print(controllerSlot + 1);
+            Serial.println(" released by client");
+            disconnectClient(controllerSlot);
+            return;
+        }
+
+        ++foreignPackets_;
+        return;
+    }
 
     if (
         client.connected &&
