@@ -13,7 +13,9 @@ By routing controller inputs over Wi-Fi/LAN, SwitchNet enables low-latency PC-to
 
 
 > [!WARNING]
-> Every part of this project _HEAVILY_ used LLMs*
+> This project was developed with **heavy use of AI/LLM-assisted code generation**.
+>
+> The core idea and workaround behind InputGhost, however, are human-designed. See [AI-Assisted Development](#-ai-assisted-development) for details.
 
 ---
 
