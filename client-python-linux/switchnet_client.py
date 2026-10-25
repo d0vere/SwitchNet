@@ -48,7 +48,7 @@ except ImportError:
     pyusb_core = None
     pyusb_util = None
 
-APP_VERSION = "1.26.6"
+APP_VERSION = "1.26.4"
 DEFAULT_PORT = 5454
 CLIENT_API_HOST = "127.0.0.1"
 CLIENT_API_PORT = 5455
@@ -1873,7 +1873,15 @@ def discover_supported_controllers_linux(include_keyboard=False):
                 vendor=int(getattr(info,'vendor',0) or 0)
                 product=int(getattr(info,'product',0) or 0)
                 family=linux_controller_family(vendor,product,dev.name)
-                if vendor==NINTENDO_VID and product==SWITCH2_PRO_PID:
+                # USB Switch 2 Pro uses the dedicated HIDRaw backend.
+                # Bluetooth Switch 2 Pro is exposed by the native kernel
+                # driver as evdev and must not be filtered out.
+                bustype=int(getattr(info,'bustype',0) or 0)
+                if (
+                    vendor==NINTENDO_VID
+                    and product==SWITCH2_PRO_PID
+                    and bustype==0x0003
+                ):
                     dev.close()
                     continue
                 # Prefer the dedicated Steam hidraw implementation.
