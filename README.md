@@ -40,10 +40,10 @@ Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───►
 
 ## 💡 Use Cases
 
-* 📡 **Remote Play & High-FPS Streaming:** Play your Switch anywhere on your home network with high resolution and smooth frame rates.
 * ⌨️ **Keyboard & Mouse Support:** Control Switch games using standard PC peripherals.
 * 🕹️ **Custom Controllers & Remapping:** Use Xbox, PlayStation, Stadia, Steam controller with fully tailored button layouts.
 * 👥 **Easy Multiplayer:** Play local multiplayer games with friends without buying additional official Switch controllers.
+* * 📡 **Remote Play & High-FPS Streaming:** Play your Switch anywhere on your home network with high resolution and smooth frame rates.
 
 
 [![SwitchNet Intro](https://img.youtube.com/vi/f59DOEypre0/maxresdefault.jpg)](https://youtu.be/f59DOEypre0?si=1AS3WwvE7aTBhF1q)
