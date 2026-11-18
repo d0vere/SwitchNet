@@ -61,6 +61,14 @@ Client PC ─── LAN / Wi-Fi ───► ESP32-S3 ─── USB ───►
 ## 🚀 Quick Guide
 
 ### 1. Flash the ESP32-S3
+
+For an OTA-ready ESP32-S3 with the existing SwitchNet dual-OTA partition table,
+compile on Linux (Arduino-ESP32 3.3.11) using
+`bash tools/build_ota.sh` and upload `build-ota/SwitchNet.ino.bin` from
+the device's web interface. The script accounts for the larger
+1,769,472-byte custom app slots and verifies the generated partition layout.
+If installing the partition layout for the first time, flash via USB instead.
+
 Compile and Flash the SwitchNet firmware onto a compatible ESP32-S3 board with arduino-cli.
 
 ### 2. Configure Wi-Fi

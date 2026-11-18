@@ -39,6 +39,51 @@ void WifiManager::begin(const Config* config)
 
 void WifiManager::update()
 {
+    if (mode_ == Mode::AccessPoint)
+    {
+        const std::uint32_t now = millis();
+
+        // Retry starting the configuration AP if the radio failed previously.
+        if (!setupApRunning_)
+        {
+            if (now - lastApStartAttemptAt_ >= AP_START_RETRY_INTERVAL_MS)
+            {
+                startAccessPoint();
+            }
+            return;
+        }
+
+        // Without saved credentials, keep the AP available for provisioning.
+        if (!hasStationConfig_)
+        {
+            return;
+        }
+
+        // Never interrupt a device associated with the configuration AP.
+        // Restart the 5-minute idle period whenever at least one is present.
+        if (WiFi.softAPgetStationNum() > 0)
+        {
+            apIdleStartedAt_ = now;
+            return;
+        }
+
+        if (now - apIdleStartedAt_ >= AP_RETRY_INTERVAL_MS)
+        {
+            Serial.println(
+                "[WIFI] Setup AP idle for 5 minutes; retrying saved WiFi"
+            );
+
+            retryingFromAccessPoint_ = true;
+            ++reconnectAttempts_;
+
+            // A bounded retry must run in STA-only mode, even when credentials
+            // have never been validated. Otherwise provisioning AP+STA would
+            // immediately bring the hotspot back.
+            startStation(stationConfig_, false);
+        }
+        return;
+    }
+
     if (mode_ == Mode::StationConnected)
     {
         if (WiFi.status() == WL_CONNECTED)
@@ -62,15 +107,35 @@ void WifiManager::update()
 
     const std::uint32_t now = millis();
 
+    // An AP-initiated retry is always bounded: return to the configuration
+    // hotspot if the router is still down after 40 seconds.
+    if (retryingFromAccessPoint_ &&
+        now - connectionStartedAt_ >= INITIAL_CONNECTION_TIMEOUT_MS)
+    {
+        Serial.println(
+            "[WIFI] Saved WiFi retry timed out; restoring setup AP"
+        );
+        startAccessPoint();
+        return;
+    }
+
+    // Give the station a continuous 40-second connection window. Repeated
+    // WiFi.reconnect() calls every 2 seconds can interrupt association/DHCP.
+    if (retryingFromAccessPoint_)
+    {
+        return;
+    }
+
     /*
      * First connection after boot: if the credentials are incorrect or the
      * router is unavailable, return to the configuration AP after 40 seconds.
      *
      * After SwitchNet has connected successfully at least once, a
-     * a temporary network loss must NOT make it abandon the router:
+     * temporary network loss must NOT make it abandon the router:
      * keep reconnecting indefinitely.
      */
-    if (!recoveringRuntimeConnection_ && !everConnected_)
+    if (!retryingFromAccessPoint_ &&
+        !recoveringRuntimeConnection_ && !everConnected_)
     {
         if (now - connectionStartedAt_ >= INITIAL_CONNECTION_TIMEOUT_MS)
         {
@@ -129,7 +194,7 @@ const char* WifiManager::modeName() const
             return "access_point";
 
         case Mode::StationConnecting:
-            return recoveringRuntimeConnection_
+            return (recoveringRuntimeConnection_ || retryingFromAccessPoint_)
                 ? "reconnecting"
                 : "connecting";
 
@@ -216,6 +281,7 @@ void WifiManager::startStation(
     }
 
     if (
+        !retryingFromAccessPoint_ &&
         !runtimeRecovery &&
         !credentialsValidated_
     )
@@ -259,6 +325,7 @@ void WifiManager::markConnected()
     mode_ = Mode::StationConnected;
     everConnected_ = true;
     recoveringRuntimeConnection_ = false;
+    retryingFromAccessPoint_ = false;
     disconnectedAt_ = 0;
     rememberValidatedCredentials();
 
@@ -357,19 +424,31 @@ void WifiManager::recoverWifiStack()
 
 void WifiManager::startAccessPoint()
 {
+    const std::uint32_t now = millis();
+
+    mode_ = Mode::AccessPoint;
+    recoveringRuntimeConnection_ = false;
+    retryingFromAccessPoint_ = false;
+    connectionLogged_ = false;
+    apIdleStartedAt_ = now;
+    lastApStartAttemptAt_ = now;
+
+    // Do not allow a stale automatic STA reconnection while in AP mode:
+    // retries must be deliberate and must not interrupt setup users.
+    WiFi.setAutoReconnect(false);
+    WiFi.disconnect(false, false);
+
     // Keep STA capability enabled so the setup page can perform Wi-Fi scans.
     WiFi.mode(WIFI_AP_STA);
     WiFi.setSleep(false);
 
     if (!ensureSetupAccessPoint())
     {
-        Serial.println("[WIFI] Failed to start setup access point");
+        Serial.println(
+            "[WIFI] Failed to start setup AP; will retry in 5 seconds"
+        );
         return;
     }
-
-    mode_ = Mode::AccessPoint;
-    recoveringRuntimeConnection_ = false;
-    connectionLogged_ = false;
 
     Serial.println("[WIFI] Setup access point ready");
 

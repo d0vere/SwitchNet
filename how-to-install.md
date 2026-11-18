@@ -492,6 +492,58 @@ esp32:esp32:esp32s3:USBMode=<USB_OTG_VALUE>
 
 # 12. Build SwitchNet
 
+## Recommended OTA build (Linux / CachyOS / Arch Linux)
+
+For the default **4 MB ESP32-S3** and the custom dual-OTA `partitions.csv`,
+prefer the checked build helper:
+
+```bash
+cd ~/SwitchNet
+bash tools/build_ota.sh
+```
+
+This command uses ESP32 Arduino Core **3.3.11** with
+`USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=default`
+(USB-OTG / TinyUSB), and compiles with:
+
+```bash
+--build-property "upload.maximum_size=1769472"
+```
+
+Why it matters: the generic `PartitionScheme=default` board profile can
+report **1,310,720 bytes (1.25 MiB)** even though SwitchNet's custom
+`partitions.csv` defines **1,769,472-byte** OTA application slots. Without
+the size override, a correctly sized SwitchNet image can fail with
+`Sketch too big`.
+
+The helper **also compares the generated `SwitchNet.ino.partitions.bin`
+against `partitions.csv`** and checks the actual `.bin` size. If the
+generated layout differs, it stops: overriding the reported size does not
+make an incorrectly partitioned image safe for OTA.
+
+Successful output: `build-ota/SwitchNet.ino.bin`, which is the application
+image to upload through the SwitchNet web dashboard. **Do not upload**
+`SwitchNet.ino.partitions.bin` or `SwitchNet.ino.bootloader.bin`
+through the HTTP OTA form. The device must already have the same dual-OTA
+partition layout installed via USB. OTA is disabled in setup-AP mode.
+
+For a different ESP32-S3 board configuration, set `SWITCHNET_FQBN`
+explicitly before running the script.
+
+### Manual equivalent
+
+```bash
+cd ~/SwitchNet
+arduino-cli compile --clean \
+  --fqbn "esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=default" \
+  --build-property "upload.maximum_size=1769472" \
+  --output-dir "$PWD/build-ota" .
+```
+
+The manual command does **not** automatically validate the partition-table
+binary. Use the helper for OTA releases.
+
+
 Enter the SwitchNet repository.
 
 ## Windows

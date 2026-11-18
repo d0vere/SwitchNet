@@ -38,6 +38,8 @@ private:
     static constexpr std::uint32_t INITIAL_CONNECTION_TIMEOUT_MS = 40000;
     static constexpr std::uint32_t RECONNECT_INTERVAL_MS = 2000;
     static constexpr std::uint32_t STACK_RECOVERY_INTERVAL_MS = 15000;
+    static constexpr std::uint32_t AP_RETRY_INTERVAL_MS = 5UL * 60UL * 1000UL;
+    static constexpr std::uint32_t AP_START_RETRY_INTERVAL_MS = 5000;
 
     Mode mode_ = Mode::Starting;
     Config stationConfig_{};
@@ -45,6 +47,7 @@ private:
     bool everConnected_ = false;
     bool connectionLogged_ = false;
     bool recoveringRuntimeConnection_ = false;
+    bool retryingFromAccessPoint_ = false;
     bool lowLatencyMode_ = false;
     bool setupApRunning_ = false;
     bool wifiPrefsReady_ = false;
@@ -56,6 +59,8 @@ private:
     std::uint32_t lastReconnectAttemptAt_ = 0;
     std::uint32_t lastStackRecoveryAt_ = 0;
     std::uint32_t disconnectedAt_ = 0;
+    std::uint32_t apIdleStartedAt_ = 0;
+    std::uint32_t lastApStartAttemptAt_ = 0;
 
     std::uint32_t disconnectCount_ = 0;
     std::uint32_t reconnectAttempts_ = 0;
